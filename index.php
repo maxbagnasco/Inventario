@@ -29,6 +29,13 @@
             }else{
                 if($_GET['vista']=="login"){
                     include "./vistas/login.php";
+
+                //} else if ($_GET['vista'] == "login") {
+                //    include "./vistas/login.php";
+                
+                } else if ($_GET['vista'] == "facturacion") {
+                    include "./vistas/facturacion.php";
+                    
                 }else{
                     include "./vistas/404.php";
                 }
