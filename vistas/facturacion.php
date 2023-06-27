@@ -1,51 +1,94 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $numeroFactura = $_POST['numero_factura'];
-    $fecha = $_POST['fecha'];
-    $cliente = $_POST['cliente'];
+    $numeroFactura = filter_input(INPUT_POST, 'numero_factura', FILTER_SANITIZE_STRING);
+    $fecha = filter_input(INPUT_POST, 'fecha', FILTER_SANITIZE_STRING);
+    $cliente = filter_input(INPUT_POST, 'cliente', FILTER_SANITIZE_STRING);
     $productos = $_POST['productos'];
     $cantidades = $_POST['cantidades'];
     $precios = $_POST['precios'];
 
-    $montoTotal = 0;
-    foreach ($productos as $index => $producto) {
-        $cantidad = $cantidades[$index];
-        $precio = $precios[$index];
-        $subtotal = $cantidad * $precio;
-        $montoTotal += $subtotal;
+    $errors = array();
+
+    if (empty($numeroFactura)) {
+        $errors[] = "El número de factura es obligatorio.";
+    } elseif (!ctype_alnum($numeroFactura)) {
+        $errors[] = "El número de factura solo puede contener letras y números.";
+    } elseif (strlen($numeroFactura) > 20) {
+        $errors[] = "El número de factura no puede exceder los 20 caracteres.";
     }
 
-    $servername = "nombre_servidor";
-    $username = "nombre_usuario";
-    $password = "contraseña";
-    $dbname = "nombre_base_de_datos";
-
-    
-    $conn = new mysqli($servername, $username, $password, $dbname);
-
-    if ($conn->connect_error) {
-        die("Error de conexión a la base de datos: " . $conn->connect_error);
+    if (empty($fecha)) {
+        $errors[] = "La fecha es obligatoria.";
+    } elseif (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+        $errors[] = "La fecha debe tener el formato YYYY-MM-DD.";
+    } elseif (strtotime($fecha) > strtotime('today')) {
+        $errors[] = "La fecha no puede ser posterior a la fecha actual.";
     }
 
-    $numeroFactura = mysqli_real_escape_string($conn, $numeroFactura);
-    $fecha = mysqli_real_escape_string($conn, $fecha);
-    $cliente = mysqli_real_escape_string($conn, $cliente);
-    $montoTotal = mysqli_real_escape_string($conn, $montoTotal);
+    if (empty($cliente)) {
+        $errors[] = "El cliente es obligatorio.";
+    } elseif (strlen($cliente) > 50) {
+        $errors[] = "El nombre del cliente no puede exceder los 50 caracteres.";
+    }
 
-    $sql = "INSERT INTO facturas (numero_factura, fecha, cliente, monto_total) 
-            VALUES ('$numeroFactura', '$fecha', '$cliente', '$montoTotal')";
-
-    if ($conn->query($sql) === TRUE) {
-        echo "La factura se ha creado exitosamente.";
+    if (count($productos) == 0) {
+        $errors[] = "Debe ingresar al menos un producto.";
     } else {
-        echo "Error al crear la factura: " . $conn->error;
+        foreach ($productos as $index => $producto) {
+            if (empty($producto)) {
+                $errors[] = "El nombre del producto es obligatorio en el ítem " . ($index + 1) . ".";
+            }
+            if ($cantidades[$index] <= 0) {
+                $errors[] = "La cantidad del producto debe ser mayor a cero en el ítem " . ($index + 1) . ".";
+            }
+            if ($precios[$index] <= 0) {
+                $errors[] = "El precio unitario del producto debe ser mayor a cero en el ítem " . ($index + 1) . ".";
+            }
+        }
     }
 
-   $conn->close();
+    if (empty($errors)) {
+
+        $servername = "nombre_servidor";
+        $username = "nombre_usuario";
+        $password = "contraseña";
+        $dbname = "nombre_base_de_datos";
+
+        $conn = new mysqli($servername, $username, $password, $dbname);
+
+        if ($conn->connect_error) {
+            die("Error en la conexión a la base de datos: " . $conn->connect_error);
+        }
+
+        $stmt = $conn->prepare("INSERT INTO facturas (numero_factura, fecha, cliente, monto_total) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("sssd", $numeroFactura, $fecha, $cliente, $montoTotal);
+
+        $montoTotal = 0;
+        for ($i = 0; $i < count($productos); $i++) {
+            $cantidad = $cantidades[$i];
+            $precio = $precios[$i];
+            $subtotal = $cantidad * $precio;
+            $montoTotal += $subtotal;
+        }
+
+        if ($stmt->execute()) {
+            echo "La factura se ha creado exitosamente.";
+        } else {
+            echo "Error al crear la factura: " . $stmt->error;
+        }
+
+        $stmt->close();
+        $conn->close();
+    } else {
+
+        foreach ($errors as $error) {
+            echo $error . "<br>";
+        }
+    }
 }
 ?>
 
-<!-- VER QUE MODIFICAR EN ESTE SECTOR DEL HTML -->
+<!-- MODIFICAR VERSION ADAPTADA AL HTML -->
 
 <!DOCTYPE html>
 <html>
