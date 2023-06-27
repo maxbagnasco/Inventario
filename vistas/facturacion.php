@@ -4,10 +4,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $fecha = $_POST['fecha'];
     $cliente = $_POST['cliente'];
     $productos = $_POST['productos'];
-    $montos = $_POST['montos'];
-  
-    $sql = "INSERT INTO facturas (numero_factura, fecha, cliente) VALUES ('$numeroFactura', '$fecha', '$cliente')";
-  
+    $cantidades = $_POST['cantidades'];
+    $precios = $_POST['precios'];
+
+    $montoTotal = 0;
+    for ($i = 0; $i < count($productos); $i++) {
+        $cantidad = $cantidades[$i];
+        $precio = $precios[$i];
+        $subtotal = $cantidad * $precio;
+        $montoTotal += $subtotal;
+    }
+
+    $sql = "INSERT INTO facturas (numero_factura, fecha, cliente, monto_total) 
+            VALUES ('$numeroFactura', '$fecha', '$cliente', '$montoTotal')";
+    
     echo "La factura se ha creado exitosamente.";
 }
 ?>
