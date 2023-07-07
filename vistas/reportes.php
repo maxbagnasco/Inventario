@@ -5,6 +5,7 @@ $username = "nombre_usuario";
 $password = "contraseña";
 $dbname = "nombre_base_de_datos";
 
+//Ejecución consultas y obtención de resultados 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
 if ($conn->connect_error) {
